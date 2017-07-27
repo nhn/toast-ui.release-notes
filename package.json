@@ -1,6 +1,6 @@
 {
   "name": "tui-release-notes",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "GitHub release note generator",
   "main": "index.js",
   "repository": "https://github.nhnent.com/youjung-hong/tui-release-notes.git",
