@@ -13,8 +13,8 @@ const release = function() {
     }
 
     const [, , since] = argv;
-    const until = argv[3] ? argv[3] : 'HEAD';
-    const CMD_GIT_LOG = `git log ${since}..${until} --pretty=format:'* %h %s (%an)'`;
+    const until = argv[3] ? `..${argv[3]}` : '';
+    const CMD_GIT_LOG = `git log ${since}${until} --pretty=format:'* %h %s (%an)'`;
 
     const commitLog = execSync(CMD_GIT_LOG, {encoding: 'utf8'});
     const commitObjects = commitLog.split('\n').reduce(makeCommitObjects, []);
