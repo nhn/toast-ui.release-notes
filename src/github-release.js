@@ -5,9 +5,9 @@ const Github = require('github-api');
 const {execSync} = require('child_process');
 const {argv, env} = process;
 
-const release = function() {
+function release() {
     if (argv.length < 3) {
-        console.log('Usage:\t npm run release <<since>> <<until>>');
+        console.log('Usage:\t npm run release <<since-tag>>( <<until-tag>>)');
 
         return;
     }
@@ -19,7 +19,7 @@ const release = function() {
     const commitLog = execSync(CMD_GIT_LOG, {encoding: 'utf8'});
     const commitObjects = commitLog.split('\n').reduce(makeCommitObjects, []);
     postGithubRelease(makeReleaseNote(commitObjects));
-};
+}
 
 function makeCommitObjects(commitObjects, line) {
     const captureGroups = getCaptureGroupsByRegex(line);
@@ -94,10 +94,9 @@ function postGithubRelease(releaseNote) {
 
     const repo = gh.getRepo(repoInfo.username, repoInfo.reponame);
     repo.createRelease({
-        tag_name: `v${pkg.version}`, // eslint-disable-line camelcase
-        name: `v${pkg.version}`,
-        body: releaseNote,
-        draft: true
+        tag_name: getTargetTag(), // eslint-disable-line camelcase
+        name: getTargetTag(),
+        body: releaseNote
     }).then(() => {
         console.log('Posted release notes to GitHub');
     }).catch(ex => {
@@ -136,4 +135,20 @@ function getRepositoryInfo() {
     };
 }
 
-release();
+function getTargetTag() {
+    return argv.length > 3 ? argv[3] : argv[2];
+}
+
+module.exports = {
+    release,
+    /* test */
+    makeCommitObjects,
+    getCaptureGroupsByRegex,
+    makeCommitObject,
+    makeReleaseNote,
+    renderTemplate,
+    postGithubRelease,
+    hasAccessToken,
+    getRepositoryInfo,
+    getTargetTag
+};
