@@ -118,8 +118,8 @@ function hasAccessToken() {
 }
 
 function getRepositoryInfo() {
-    const {repository} = pkg;
-    const {length} = repository.split('/');
+    const repository = pkg.repository.split('/');
+    const {length} = repository;
 
     if (length < 2) {
         console.log('Wrong repository url on package.json');
