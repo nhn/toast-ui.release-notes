@@ -1,9 +1,9 @@
 'use strict';
 
-const pkg = require('../package.json');
 const Github = require('github-api');
 const {execSync} = require('child_process');
 const {argv, env} = process;
+const pkg = require(env.PWD + '/package.json');
 
 function release() {
     if (argv.length < 3) {
@@ -117,7 +117,7 @@ function hasAccessToken() {
 }
 
 function getRepositoryInfo() {
-    const repository = pkg.repository.split('/');
+    const repository = getRepositoryUrl().split('/');
     const {length} = repository;
 
     if (length < 2) {
@@ -133,6 +133,13 @@ function getRepositoryInfo() {
         username,
         reponame
     };
+}
+
+function getRepositoryUrl() {
+    const pkgRepository = pkg.repository;
+    const repositoryUrl = (typeof pkgRepository === 'string') ? pkgRepository : pkgRepository.url;
+
+    return repositoryUrl;
 }
 
 function getTargetTag() {
