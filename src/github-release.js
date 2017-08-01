@@ -1,133 +1,262 @@
 'use strict';
 
-const Github = require('github-api');
-const {execSync} = require('child_process');
-const {argv, env} = process;
-const pkg = require(env.PWD + '/package.json');
+const path = require('path');
+const github = require('./github');
+const pkg = require(path.join(process.cwd(), 'package.json'));
 
+const {env} = process;
+const {TUI_GITHUB_TOKEN} = env;
+
+/**
+ * Entry function
+ * Get target tags
+ * Collect commits
+ * Make release note
+ * Post Github release 
+ */
 function release() {
-    if (argv.length < 3) {
-        console.log('Usage:\t npm run release <<since-tag>>( <<until-tag>>)');
-
+    /* test ready */
+    if (!testRepositoryUrl() || !testGitHubAccessToken()) {
         return;
     }
 
-    const [, , since] = argv;
-    const until = argv[3] ? `..${argv[3]}` : '';
-    const CMD_GIT_LOG = `git log ${since}${until} --pretty=format:'* %h %s (%an)'`;
+    /* Set Repository Info */
+    const repo = getRepositoryInfo();
+    github.setProject(env.TUI_GITHUB_TOKEN, repo.username, repo.reponame);
 
-    const commitLog = execSync(CMD_GIT_LOG, {encoding: 'utf8'});
-    const commitObjects = commitLog.split('\n').reduce(makeCommitObjects, []);
-    postGithubRelease(makeReleaseNote(commitObjects));
+    github.getTags() /* Get target tags */
+        .then(tags => getCommitLogs(tags))
+        .then(commits => filterCommits(commits))
+        .then(commits => makeReleaseNote(commits))
+        .then(releaseNote => github.postGithubRelease(releaseNote))
+        .catch(ex => {
+            if (ex.message) {
+                console.log(ex.message);
+            }
+        });
 }
 
-function makeCommitObjects(commitObjects, line) {
-    const captureGroups = getCaptureGroupsByRegex(line);
+const gitRepoRegex = /\/([\w-]+)\/([\w-]+)\.git\/?$/;
+/**
+ * test repository url on package.json is valid
+ * @returns {boolean} - url validity
+ */
+function testRepositoryUrl() {
+    const pass = gitRepoRegex.test(getRepositoryUrl());
+    if (!pass) {
+        console.log('Wrong repository url on package.json');
+    }
 
-    if (captureGroups) {
-        commitObjects.push(makeCommitObject(captureGroups));
+    return pass;
+}
+
+/**
+ * test user has github access token
+ * @returns {boolean} - whether has token or not
+ */
+function testGitHubAccessToken() {
+    const pass = env.TUI_GITHUB_TOKEN;
+    if (!pass) {
+        console.log('Missing TUI_GITHUB_TOKEN environment variable');
+    }
+
+    return pass;
+}
+
+/**
+ * If tags has BASE option, get commits between BASE and COMPARE
+ * if not, get commits until COMPARE tag
+ * @param {Range} tags - target tags to compare
+ * @returns {Promise} - get commits from target tag
+ */
+function getCommitLogs(tags) {
+    if (tags.base) {
+        return github.getCommitLogsBetweenTags(tags.base.name, tags.compare.name);
+    }
+
+    return getCommitLogsUntilTag(tags.compare.name);
+}
+
+/**
+ * Get commits until tag
+ * @param {string} tag - tag name
+ * @returns {Promise} - get commits until tag
+ */
+function getCommitLogsUntilTag(tag) {
+    return new Promise((resolve, reject) => {
+        github.getCommitByTag(tag)
+            .then(data => github.getCommitBySHA(data.sha))
+            .then(commit => github.getCommits({until: commit.author.date}))
+            .then(commits => {
+                resolve(commits);
+            })
+            .catch(ex => {
+                if (ex.message) {
+                    reject(ex.message);
+                }
+            });
+    });
+}
+
+/**
+ * Change to CommitObject 
+ * @param {Array} commits - commits
+ * @returns {Array} - filtered commits
+ */
+function filterCommits(commits) {
+    const commitObjects = [];
+    commits.forEach(commit => {
+        const firstLine = `* ${commit.sha.substr(0, 7)} ${commit.commit.message} (${commit.commit.author.name})`;
+        shipFittedObject(commitObjects, firstLine);
+    });
+
+    return commitObjects;
+}
+
+/**
+ * Filter commit matches commit message conventions
+ * @param {Object} commitObjects - array has matched commit object
+ * @param {string} line - commit's first line
+ * @returns {Array} - array has matched commit object
+ */
+function shipFittedObject(commitObjects, line) {
+    const captureGroup = getCaptureGroupByRegex(line);
+    let shipped = false;
+    if (captureGroup) {
+        const commit = makeCommitObject(captureGroup);
+        commitObjects.push(commit);
+        shipped = true;
+    }
+    if (shipped) {
+        console.log('\x1b[32m%s\x1b[0m', `shipped: ${line}`);
+    } else {
+        console.log('\x1b[31m%s\x1b[0m', `omitted: ${line}`);
     }
 
     return commitObjects;
 }
 
-function getCaptureGroupsByRegex(line) {
-    const commitLogRegex = /\* ([a-z0-9]{7}) (\w*):? (.*) (\(.*\))/;
+const commitLogRegex = /\* ([a-z0-9]{7}) (\w*):? (.*) (\(.*\))/;
 
+/**
+ * Get results of regular expresion check
+ * test follows commit convention
+ * @param {string} line - commit's first line
+ * @returns {Array|null}
+ *  - if matches, return array having capture group
+ *  - if not, return null
+ */
+function getCaptureGroupByRegex(line) {
     return line.match(commitLogRegex);
 }
 
-function makeCommitObject(captureGroups) {
-    const [, sha1, type, title, author] = captureGroups;
-    const capitaledType = type[0].toUpperCase() + type.substr(1).toLowerCase();
+/**
+ * Make commit object from Capture group
+ * @param {Array} captureGroup - capture group of regex
+ * @returns {Object} commit object
+ */
+function makeCommitObject(captureGroup) {
+    const [, sha1, type, title, author] = captureGroup;
+    const capitalizedType = capitalizeString(type);
 
     return {
         sha1,
-        type: capitaledType,
+        type: capitalizedType,
         title,
         author
     };
 }
 
-function makeReleaseNote(commitObjects) {
-    const typeRegexs = [
-        /feat/i, /refactor|perf/i, /build/i, /doc/i, /fix/i
-    ];
+/**
+ * Capitalize string
+ * @param {string} str - string
+ * @returns {string} - capitalized string
+ */
+function capitalizeString(str) {
+    return str[0].toUpperCase() + str.substr(1).toLowerCase();
+}
+
+/**
+ * Make release note from commit objects
+ * @param {Array} commits - commits
+ * @returns {string} - generated release note
+ */
+function makeReleaseNote(commits) {
     const titles = [
-        'Features', 'Enhancement', 'Build Related', 'Documentation', 'Bug Fixes'
+        'Features', 'Bug Fixes', 'Enhancement', 'Build Related', 'Documentation'
     ];
-
-    let releaseNote = '';
-    typeRegexs.forEach((typeRegex, typeIndex) => {
-        commitObjects
-            .filter(commit => typeRegex.test(commit.type))
-            .forEach((commit, commitIndex) => {
-                releaseNote += renderTemplate(commit, commitIndex, titles[typeIndex]);
-            });
-    });
-
-    return releaseNote;
-}
-
-function renderTemplate(commit, commitIndex, title) {
     let releaseNote = '';
 
-    if (commitIndex === 0) {
-        releaseNote += `\n## ${title}\n\n`;
-    }
-    releaseNote += `* ${commit.sha1} ${commit.type}: ${commit.title} ${commit.author}\n`;
-
-    return releaseNote;
-}
-
-function postGithubRelease(releaseNote) {
-    const repoInfo = getRepositoryInfo();
-
-    if (!hasAccessToken() || !repoInfo) {
-        return;
-    }
-
-    const enterpriseUrl = 'https://github.nhnent.com/api/v3';
-    const gh = new Github({
-        token: env.TUI_GITHUB_TOKEN
-    }, enterpriseUrl);
-
-    const repo = gh.getRepo(repoInfo.username, repoInfo.reponame);
-    repo.createRelease({
-        tag_name: getTargetTag(), // eslint-disable-line camelcase
-        name: getTargetTag(),
-        body: releaseNote
-    }).then(() => {
-        console.log('Posted release notes to GitHub');
-    }).catch(ex => {
-        console.error('Could not post release notes to GitHub');
-        if (ex.message) {
-            console.error(ex.message);
+    const groups = commits.reduce(groupCommitByType, {});
+    for (const type in groups) {
+        if (groups.hasOwnProperty(type)) {
+            releaseNote += renderTemplate(titles[type], groups[type]);
         }
+    }
+
+    console.log('\n================================================================');
+    console.log(releaseNote);
+    console.log('================================================================\n');
+    return releaseNote;
+}
+
+const typeRegexs = [
+    /feat/i, /fix/i, /refactor|perf/i, /build/i, /doc/i
+];
+/**
+ * 
+ * @param {Object} groups - property: commit type, value: commits group by type
+ * @param {*} commit - commit
+ * @returns {Object} - groups
+ */
+function groupCommitByType(groups, commit) {
+    typeRegexs.some((typeRegex, typeIndex) => {
+        const matched = typeRegex.test(commit.type);
+        if (matched) {
+            addCommitOnGroup(groups, typeIndex, commit);
+        }
+
+        return matched;
     });
+
+    return groups;
 }
 
-function hasAccessToken() {
-    const accessToken = env.TUI_GITHUB_TOKEN;
-    if (!accessToken) {
-        console.log('Missing TUI_GITHUB_TOKEN environment variable');
+/**
+ * Add Commit on Group
+ * @param {Object} groups - objects has type as a property name, commits as a property's value
+ * @param {string} type - commit type
+ * @param {string} commit - commit
+ */
+function addCommitOnGroup(groups, type, commit) {
+    if (!groups[type]) {
+        groups[type] = [];
     }
 
-    return accessToken;
+    groups[type].push(commit);
 }
 
+/**
+ * Render template
+ * @param {string} title - commit's type
+ * @param {string} commits - commit groups has same type
+ * @returns {string} - release note on type rendered by template
+ */
+function renderTemplate(title, commits) {
+    let releaseNote = `\n## ${title}\n\n`;
+    commits.forEach(commit => {
+        releaseNote += `* ${commit.sha1} ${commit.type}: ${commit.title}\n`;
+    });
+
+    return releaseNote;
+}
+
+/**
+ * Get Repository username, repository name
+ * @returns {Object} - username and repository name
+ */
 function getRepositoryInfo() {
-    const repository = getRepositoryUrl().split('/');
-    const {length} = repository;
-
-    if (length < 2) {
-        console.log('Wrong repository url on package.json');
-        return null;
-    }
-
-    const username = repository[length - 2];
-    let reponame = repository[length - 1];
-    reponame = reponame.substr(0, reponame.indexOf('.git'));
+    const [, username, reponame] = getRepositoryUrl().match(gitRepoRegex);
 
     return {
         username,
@@ -135,27 +264,24 @@ function getRepositoryInfo() {
     };
 }
 
+/**
+ * Get repository url from package.json
+ * @returns {string} - repository url
+ */
 function getRepositoryUrl() {
-    const pkgRepository = pkg.repository;
+    const pkgRepository = pkg.repository || '';
     const repositoryUrl = (typeof pkgRepository === 'string') ? pkgRepository : pkgRepository.url;
 
     return repositoryUrl;
 }
 
-function getTargetTag() {
-    return argv.length > 3 ? argv[3] : argv[2];
-}
-
 module.exports = {
     release,
     /* test */
-    makeCommitObjects,
-    getCaptureGroupsByRegex,
+    shipFittedObject,
+    getCaptureGroupByRegex,
     makeCommitObject,
     makeReleaseNote,
     renderTemplate,
-    postGithubRelease,
-    hasAccessToken,
-    getRepositoryInfo,
-    getTargetTag
+    getRepositoryInfo
 };
