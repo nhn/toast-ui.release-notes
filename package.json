@@ -20,10 +20,13 @@
   ],
   "author": "youjung hong",
   "license": "MIT",
+  "dependencies": {
+    "github-api": "^3.0.0",
+    "minimist": "^1.2.0"
+  },
   "devDependencies": {
     "eslint": "^4.0.0",
     "eslint-config-tui": "^1.0.1",
-    "github-api": "^3.0.0",
     "jasmine-core": "2.5.2",
     "jasmine-jquery": "^2.0.5",
     "jasmine-node": "^1.14.5"
