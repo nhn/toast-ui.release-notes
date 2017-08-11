@@ -10,7 +10,7 @@
     "release": "bin/tnote.js"
   },
   "bin": {
-    "tnote": "bin/tnote.js"
+    "tuie": "bin/tnote.js"
   },
   "keywords": [
     "git release note",
