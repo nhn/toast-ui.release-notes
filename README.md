@@ -6,9 +6,7 @@ Gather commits on tag
 ```json
 // package.json
 devDependencies: {
-    ...
     "tui-release-notes": "git+https://github.com/nhnent/tui.release-notes.git"
-    ...
 }
 ```
 

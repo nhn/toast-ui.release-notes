@@ -7,7 +7,7 @@ const path = require('path');
 const pkg = require(path.join(process.cwd(), 'package.json'));
 const {TUI_GITHUB_TOKEN, apiUrl} = process.env; // eslint-disable-line no-process-env
 
-const GIT_REPO_REGEXP = /\/([\w-]+)\/([\w-]+)\.git\/?$/; // .../user-name/repository-name.git
+const GIT_REPO_REGEXP = /\/([\w-]+)\/([\w-.]+)\.git\/?$/; // .../user-name/repository-name.git
 /**
  * @example
  * * sha1sha fixed: some issue (fixes: #122) (author-name)
