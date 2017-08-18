@@ -20,13 +20,19 @@ export TUI_GITHUB_TOKEN=github-personal-access-toke
 ```
 
 Execute `tuie` on your `project root`
+```json
+// package.json
+scripts: {
+    "tuie": "tuie"
+}
+```
 ```bash
 # latest tag
-npm run release
+npm run tuie
 # specific tag
-npm run release --tag={specific-tag}
+npm run tuie --tag={specific-tag}
 # enterprise
-npm run release --apiUrl={github.your-enterprise-url.com/api/v3}
+npm run tuie --apiUrl={github.your-enterprise-url.com/api/v3}
 ```
 
 ## License
