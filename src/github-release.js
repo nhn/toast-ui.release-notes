@@ -31,11 +31,11 @@ let githubHelper;
  * Get target tags
  * Collect commits
  * Make release note
- * Post Github release 
+ * Post Github release
  */
 function release() {
     /* check could use github-api */
-    if (!isValidRepositoryUrl(pkgJson) || !hasGitHubAccessToken()) {
+    if (!isValidRepositoryUrl(pkg) || !hasGitHubAccessToken()) {
         throw new Error();
     }
 
@@ -54,7 +54,7 @@ function release() {
 
 /**
  * Get Repository configured with access token, base url
- * @returns {Repository} - repository 
+ * @returns {Repository} - repository
  * @see https://github.com/github-tools/github/blob/22b889cd48cd281812b020d85f8ea502af69ddfd/lib/Repository.js
  */
 function getRepo() {
@@ -69,6 +69,7 @@ function getRepo() {
 
 /**
  * Get repository url from package.json
+ * @param {JSON} pkgJson - json object defined in package.json
  * @returns {string} - repository url
  */
 function getRepositoryUrl(pkgJson) {
@@ -87,6 +88,7 @@ function getRepositoryUrl(pkgJson) {
 
 /**
  * Get Repository username, repository name
+ * @param {JSON} pkgJson - json object defined in package.json
  * @returns {Object} - username and repository name
  */
 function getRepositoryInfo(pkgJson) {
@@ -100,12 +102,13 @@ function getRepositoryInfo(pkgJson) {
 
 /**
  * test repository url on package.json is valid
+ * @param {JSON} pkgJson - json object defined in package.json
  * @returns {boolean} - url validity
  */
 function isValidRepositoryUrl(pkgJson) {
     const pass = GIT_REPO_REGEXP.test(getRepositoryUrl(pkgJson));
     if (!pass) {
-        console.error('Wrong repository url on package.json');
+        console.error('Invalid repository url on package.json');
     }
 
     return pass;
@@ -157,7 +160,7 @@ function getCommitLogsUntilTag(tag) {
 }
 
 /**
- * Change to CommitObject 
+ * Change to CommitObject
  * @param {Array} commits - commits
  * @returns {Array} - filtered commits
  */
@@ -178,6 +181,7 @@ function filterCommits(commits) {
 /**
  * Filter commit matches commit message conventions
  * @param {string} commitMessage - commit's first line
+ * @returns {Array} - filtered commit objects
  */
 function matchCommitMessage(commitMessage) {
     const captureGroup = commitMessage.match(COMMIT_LOG_REGEXP);
@@ -242,7 +246,7 @@ function makeReleaseNote(commits) {
 /**
  * check commit type by regular expression of available types
  * @param {string} type - commit type
- * @returns {number} 
+ * @returns {number}
  *  - index: when commit type is matched by some type's
  *  - -1: matches nothing
  */
