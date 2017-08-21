@@ -10,23 +10,36 @@ devDependencies: {
 }
 ```
 
-## Usage
-Register `TUI_GITHUB_TOKEN` as a environment variables
-
-**Mac OS**
-```sh
-# ~/.bash_profile
-export TUI_GITHUB_TOKEN=github-personal-access-toke
+## Before Use
+1. Check `package.json` has `repository` property
+```json
+// package.json
+"repository": {
+  "type": "git",
+  "url": "https://github.com/username/repository-name.git"
+}
+// or for short expression
+"repository": "https://github.com/username/repository-name.git"
 ```
 
-Execute `tuie` on your `project root`
+2. Register `TUI_GITHUB_TOKEN` as a environment variables
+
+3. Execute `tuie` on your `project root`
+```json
+// package.json
+scripts: {
+    "tuie": "tuie"
+}
+```
+
+## Usage
 ```bash
 # latest tag
-npm run release
+npm run tuie
 # specific tag
-npm run release --tag={specific-tag}
+npm run tuie --tag={specific-tag}
 # enterprise
-npm run release --apiUrl={github.your-enterprise-url.com/api/v3}
+npm run tuie --apiUrl={github.your-enterprise-url.com/api/v3}
 ```
 
 ## License
