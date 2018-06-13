@@ -1,16 +1,16 @@
 {
   "name": "tui-release-notes",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "GitHub release note generator",
   "main": "index.js",
-  "repository": "https://github.nhnent.com/youjung-hong/tui-release-notes.git",
+  "repository": "https://github.com/nhnent/tui.release-notes.git",
   "scripts": {
     "test": "jasmine-node test/",
     "eslint": "eslint src/js",
-    "release": "bin/tnote.js"
+    "release": "tnote.js"
   },
   "bin": {
-    "tuie": "bin/tnote.js"
+    "tuie": "tnote.js"
   },
   "keywords": [
     "git release note",
