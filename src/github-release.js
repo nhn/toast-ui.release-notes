@@ -5,7 +5,7 @@ const GithubHelper = require('./GithubHelper');
 const argv = require('minimist')(process.argv.slice(2));
 const path = require('path');
 const pkg = require(path.join(process.cwd(), 'package.json'));
-const {TUI_GITHUB_TOKEN, apiUrl} = process.env; // eslint-disable-line no-process-env
+const { TUI_GITHUB_TOKEN, apiUrl } = process.env; // eslint-disable-line no-process-env
 
 const GIT_REPO_REGEXP = /\/([\w-]+)\/([\w-.]+)\.git\/?$/; // .../user-name/repository-name.git
 /**
@@ -17,12 +17,8 @@ const GIT_REPO_REGEXP = /\/([\w-]+)\/([\w-.]+)\.git\/?$/; // .../user-name/repos
  * * dk2h35d doc: update readme (author-name)
  */
 const COMMIT_LOG_REGEXP = /\* ([a-z0-9]{7}) (\w*):? (.*) \((.*)\)/;
-const TYPE_REGEXPS = [
-    /feat/i, /fix/i, /refactor|perf/i, /build/i, /doc/i
-];
-const TITLES = [
-    'Features', 'Bug Fixes', 'Enhancement', 'Build Related', 'Documentation'
-];
+const TYPE_REGEXPS = [/feat/i, /fix/i, /refactor|perf/i, /build/i, /doc/i];
+const TITLES = ['Features', 'Bug Fixes', 'Enhancement', 'Build Related', 'Documentation'];
 
 let githubHelper;
 
@@ -34,22 +30,23 @@ let githubHelper;
  * Post Github release
  */
 function release() {
-    /* check could use github-api */
-    if (!isValidRepositoryUrl(pkg) || !hasGitHubAccessToken()) {
-        throw new Error();
-    }
+  /* check could use github-api */
+  if (!isValidRepositoryUrl(pkg) || !hasGitHubAccessToken()) {
+    throw new Error();
+  }
 
-    /* set connection infomation */
-    githubHelper = new GithubHelper(getRepo());
+  /* set connection infomation */
+  githubHelper = new GithubHelper(getRepo());
 
-    /* get commits and make release note */
-    githubHelper.getTags()
-        .then(tags => githubHelper.getTagRange(tags, argv.tag))
-        .then(getCommitLogs)
-        .then(filterCommits)
-        .then(makeReleaseNote)
-        .then(releaseNote => githubHelper.publishReleaseNote(releaseNote))
-        .catch(error => console.error(error.message));
+  /* get commits and make release note */
+  githubHelper
+    .getTags()
+    .then(tags => githubHelper.getTagRange(tags, argv.tag))
+    .then(getCommitLogs)
+    .then(filterCommits)
+    .then(makeReleaseNote)
+    .then(releaseNote => githubHelper.publishReleaseNote(releaseNote))
+    ['catch'](error => console.error(error.message));
 }
 
 /**
@@ -58,13 +55,16 @@ function release() {
  * @see https://github.com/github-tools/github/blob/22b889cd48cd281812b020d85f8ea502af69ddfd/lib/Repository.js
  */
 function getRepo() {
-    const repoInfo = getRepositoryInfo(pkg);
-    const baseUrl = apiUrl || 'https://api.github.com';
-    const gh = new Github({
-        token: TUI_GITHUB_TOKEN
-    }, baseUrl);
+  const repoInfo = getRepositoryInfo(pkg);
+  const baseUrl = apiUrl || 'https://api.github.com';
+  const gh = new Github(
+    {
+      token: TUI_GITHUB_TOKEN
+    },
+    baseUrl
+  );
 
-    return gh.getRepo(repoInfo.userName, repoInfo.repoName);
+  return gh.getRepo(repoInfo.userName, repoInfo.repoName);
 }
 
 /**
@@ -73,17 +73,17 @@ function getRepo() {
  * @returns {string} - repository url
  */
 function getRepositoryUrl(pkgJson) {
-    const pkgRepository = pkgJson.repository;
-    let repositoryUrl = '';
-    if (typeof pkgRepository === 'string' && pkgRepository.length > 0) {
-        repositoryUrl = pkgRepository;
-    } else if (pkgRepository instanceof Object) {
-        repositoryUrl = pkgRepository.url;
-    } else {
-        throw new Error('repository in package.json is invalid.');
-    }
+  const pkgRepository = pkgJson.repository;
+  let repositoryUrl = '';
+  if (typeof pkgRepository === 'string' && pkgRepository.length > 0) {
+    repositoryUrl = pkgRepository;
+  } else if (pkgRepository instanceof Object) {
+    repositoryUrl = pkgRepository.url;
+  } else {
+    throw new Error('repository in package.json is invalid.');
+  }
 
-    return repositoryUrl;
+  return repositoryUrl;
 }
 
 /**
@@ -92,12 +92,12 @@ function getRepositoryUrl(pkgJson) {
  * @returns {Object} - username and repository name
  */
 function getRepositoryInfo(pkgJson) {
-    const [, userName, repoName] = getRepositoryUrl(pkgJson).match(GIT_REPO_REGEXP);
+  const [, userName, repoName] = getRepositoryUrl(pkgJson).match(GIT_REPO_REGEXP);
 
-    return {
-        userName,
-        repoName
-    };
+  return {
+    userName,
+    repoName
+  };
 }
 
 /**
@@ -106,12 +106,12 @@ function getRepositoryInfo(pkgJson) {
  * @returns {boolean} - url validity
  */
 function isValidRepositoryUrl(pkgJson) {
-    const pass = GIT_REPO_REGEXP.test(getRepositoryUrl(pkgJson));
-    if (!pass) {
-        console.error('Invalid repository url on package.json');
-    }
+  const pass = GIT_REPO_REGEXP.test(getRepositoryUrl(pkgJson));
+  if (!pass) {
+    console.error('Invalid repository url on package.json');
+  }
 
-    return pass;
+  return pass;
 }
 
 /**
@@ -119,12 +119,12 @@ function isValidRepositoryUrl(pkgJson) {
  * @returns {boolean} - whether has token or not
  */
 function hasGitHubAccessToken() {
-    const pass = (typeof TUI_GITHUB_TOKEN === 'string') && TUI_GITHUB_TOKEN.length > 0;
-    if (!pass) {
-        console.error('Missing TUI_GITHUB_TOKEN environment variable');
-    }
+  const pass = typeof TUI_GITHUB_TOKEN === 'string' && TUI_GITHUB_TOKEN.length > 0;
+  if (!pass) {
+    console.error('Missing TUI_GITHUB_TOKEN environment variable');
+  }
 
-    return pass;
+  return pass;
 }
 
 /**
@@ -134,11 +134,11 @@ function hasGitHubAccessToken() {
  * @returns {Promise} - get commits from target tag
  */
 function getCommitLogs(tagRange) {
-    if (tagRange.base) {
-        return githubHelper.getCommitLogsBetweenTags(tagRange.base.name, tagRange.compare.name);
-    }
+  if (tagRange.base) {
+    return githubHelper.getCommitLogsBetweenTags(tagRange.base.name, tagRange.compare.name);
+  }
 
-    return getCommitLogsUntilTag(tagRange.compare.name);
+  return getCommitLogsUntilTag(tagRange.compare.name);
 }
 
 /**
@@ -146,17 +146,18 @@ function getCommitLogs(tagRange) {
  * @param {string} tag - tag name
  */
 function getCommitLogsUntilTag(tag) {
-    /*
-     * need register date of tagging commit
-     * to get date,
-     *  1) get commit by ref(tag), get commit sha
-     *  2) get commit by sha, get registered date
-     *  3) get commit list by `until` option
-     */
-    githubHelper.getCommitByTag(tag)
-        .then(data => githubHelper.getCommitBySHA(data.sha))
-        .then(commit => githubHelper.getCommits({until: commit.author.date}))
-        .then(commits => commits);
+  /*
+   * need register date of tagging commit
+   * to get date,
+   *  1) get commit by ref(tag), get commit sha
+   *  2) get commit by sha, get registered date
+   *  3) get commit list by `until` option
+   */
+  githubHelper
+    .getCommitByTag(tag)
+    .then(data => githubHelper.getCommitBySHA(data.sha))
+    .then(commit => githubHelper.getCommits({ until: commit.author.date }))
+    .then(commits => commits);
 }
 
 /**
@@ -165,17 +166,18 @@ function getCommitLogsUntilTag(tag) {
  * @returns {Array} - filtered commits
  */
 function filterCommits(commits) {
-    const commitObjects = [];
-    commits.forEach(commitObj => {
-        const firstLine
-            = `* ${commitObj.sha.substr(0, 7)} ${commitObj.commit.message} (${commitObj.commit.author.name})`;
-        const commitObject = matchCommitMessage(firstLine);
-        if (commitObject) {
-            commitObjects.push(commitObject);
-        }
-    });
+  const commitObjects = [];
+  commits.forEach(commitObj => {
+    const firstLine = `* ${commitObj.sha.substr(0, 7)} ${commitObj.commit.message} (${
+      commitObj.commit.author.name
+    })`;
+    const commitObject = matchCommitMessage(firstLine);
+    if (commitObject) {
+      commitObjects.push(commitObject);
+    }
+  });
 
-    return commitObjects;
+  return commitObjects;
 }
 
 /**
@@ -184,16 +186,16 @@ function filterCommits(commits) {
  * @returns {Array} - filtered commit objects
  */
 function matchCommitMessage(commitMessage) {
-    const captureGroup = commitMessage.match(COMMIT_LOG_REGEXP);
-    let commit;
-    if (captureGroup) {
-        commit = makeCommitObject(captureGroup);
-        console.log('\x1b[32m%s\x1b[0m', `shipped: ${commitMessage}`);
-    } else {
-        console.log('\x1b[31m%s\x1b[0m', `omitted: ${commitMessage}`);
-    }
+  const captureGroup = commitMessage.match(COMMIT_LOG_REGEXP);
+  let commit;
+  if (captureGroup) {
+    commit = makeCommitObject(captureGroup);
+    console.log('\x1b[32m%s\x1b[0m', `shipped: ${commitMessage}`);
+  } else {
+    console.log('\x1b[31m%s\x1b[0m', `omitted: ${commitMessage}`);
+  }
 
-    return commit;
+  return commit;
 }
 
 /**
@@ -202,15 +204,15 @@ function matchCommitMessage(commitMessage) {
  * @returns {Object} commit object
  */
 function makeCommitObject(captureGroup) {
-    const [, sha1, type, title, author] = captureGroup;
-    const capitalizedType = capitalizeString(type);
+  const [, sha1, type, title, author] = captureGroup;
+  const capitalizedType = capitalizeString(type);
 
-    return {
-        sha1,
-        type: capitalizedType,
-        title,
-        author
-    };
+  return {
+    sha1,
+    type: capitalizedType,
+    title,
+    author
+  };
 }
 
 /**
@@ -219,7 +221,7 @@ function makeCommitObject(captureGroup) {
  * @returns {string} - capitalized string
  */
 function capitalizeString(str) {
-    return `${str[0].toUpperCase()}${str.substr(1).toLowerCase()}`;
+  return `${str[0].toUpperCase()}${str.substr(1).toLowerCase()}`;
 }
 
 /**
@@ -228,19 +230,20 @@ function capitalizeString(str) {
  * @returns {string} - generated release note
  */
 function makeReleaseNote(commits) {
-    let releaseNote = '';
+  let releaseNote = '';
 
-    const groups = getGroupsByCommitType(commits);
-    for (const type in groups) {
-        if (groups.hasOwnProperty(type)) {
-            releaseNote += renderTemplate(TITLES[type], groups[type]);
-        }
+  const groups = getGroupsByCommitType(commits);
+  for (const type in groups) {
+    if (groups.hasOwnProperty(type)) {
+      releaseNote += renderTemplate(TITLES[type], groups[type]);
     }
+  }
 
-    console.log('\n================================================================');
-    console.log(releaseNote);
-    console.log('================================================================\n');
-    return releaseNote;
+  console.log('\n================================================================');
+  console.log(releaseNote);
+  console.log('================================================================\n');
+
+  return releaseNote;
 }
 
 /**
@@ -251,14 +254,14 @@ function makeReleaseNote(commits) {
  *  - -1: matches nothing
  */
 function findMatchedTypeIndex(type) {
-    const length = TYPE_REGEXPS.length; // eslint-disable-line prefer-destructuring
-    for (let i = 0; i < length; i += 1) {
-        if (TYPE_REGEXPS[i].test(type)) {
-            return i;
-        }
+  const length = TYPE_REGEXPS.length; // eslint-disable-line prefer-destructuring
+  for (let i = 0; i < length; i += 1) {
+    if (TYPE_REGEXPS[i].test(type)) {
+      return i;
     }
+  }
 
-    return -1;
+  return -1;
 }
 
 /**
@@ -267,15 +270,15 @@ function findMatchedTypeIndex(type) {
  * @returns {Object} groups - property: commit type, value: all commits having exact type
  */
 function getGroupsByCommitType(commits) {
-    const groups = {};
-    commits.forEach(commit => {
-        const typeIndex = findMatchedTypeIndex(commit.type);
-        if (typeIndex > -1) {
-            addCommitOnGroup(groups, typeIndex, commit);
-        }
-    });
+  const groups = {};
+  commits.forEach(commit => {
+    const typeIndex = findMatchedTypeIndex(commit.type);
+    if (typeIndex > -1) {
+      addCommitOnGroup(groups, typeIndex, commit);
+    }
+  });
 
-    return groups;
+  return groups;
 }
 
 /**
@@ -285,11 +288,11 @@ function getGroupsByCommitType(commits) {
  * @param {string} commit - commit
  */
 function addCommitOnGroup(groups, typeIndex, commit) {
-    if (!groups[typeIndex]) {
-        groups[typeIndex] = [];
-    }
+  if (!groups[typeIndex]) {
+    groups[typeIndex] = [];
+  }
 
-    groups[typeIndex].push(commit);
+  groups[typeIndex].push(commit);
 }
 
 /**
@@ -299,32 +302,32 @@ function addCommitOnGroup(groups, typeIndex, commit) {
  * @returns {string} - release note on type rendered by template
  */
 function renderTemplate(title, commits) {
-    let releaseNote = `\n## ${title}\n\n`;
-    commits.forEach(commit => {
-        releaseNote += `* ${commit.sha1} ${commit.type}: ${commit.title}\n`;
-    });
+  let releaseNote = `\n## ${title}\n\n`;
+  commits.forEach(commit => {
+    releaseNote += `* ${commit.sha1} ${commit.type}: ${commit.title}\n`;
+  });
 
-    return releaseNote;
+  return releaseNote;
 }
 
 module.exports = {
-    release,
-    /* test */
-    getRepo,
-    getRepositoryUrl,
-    getRepositoryInfo,
-    isValidRepositoryUrl,
-    hasGitHubAccessToken,
-    getCommitLogs,
-    getCommitLogsUntilTag,
-    filterCommits,
-    matchCommitMessage,
+  release,
+  /* test */
+  getRepo,
+  getRepositoryUrl,
+  getRepositoryInfo,
+  isValidRepositoryUrl,
+  hasGitHubAccessToken,
+  getCommitLogs,
+  getCommitLogsUntilTag,
+  filterCommits,
+  matchCommitMessage,
 
-    makeCommitObject,
-    capitalizeString,
-    makeReleaseNote,
-    findMatchedTypeIndex,
-    getGroupsByCommitType,
-    addCommitOnGroup,
-    renderTemplate
+  makeCommitObject,
+  capitalizeString,
+  makeReleaseNote,
+  findMatchedTypeIndex,
+  getGroupsByCommitType,
+  addCommitOnGroup,
+  renderTemplate
 };
