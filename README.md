@@ -70,7 +70,7 @@ Add your config files to the root of your working directory. The config file mus
 | `groupBy` | `object` | Determine how to categorize commits by their types. 'key' is `group name` and 'value' is `array of types`. (default: [defaultConfig.groupBy](src/defaultConfig.js)) |
 | `commitMessage.type` | `function` | Determine how to get a type from a commit message. (default: [defaultConfig.commitMessage.type](src/defaultConfig.js)) |
 | `template.commit` | `function` | Note from a commit. (default: [defaultConfig.template.commit](src/defaultConfig.js)) |
-| `downloads` | `function | object` | Links to download the files. (reference: [defaultConfig.downloads](src/defaultConfig.js)) |
+| `downloads` | `function \| object` | Links to download the files. (reference: [defaultConfig.downloads](src/defaultConfig.js)) |
 
 
 ## 📜 License
