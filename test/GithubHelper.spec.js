@@ -1,6 +1,8 @@
 'use strict';
 
 const GithubHelper = require('../src/GithubHelper');
+const config = require('../src/defaultConfig');
+config.token = 'test-token';
 
 describe('GithubHelper', () => {
   const tagListHasMultipleTag = [
@@ -10,11 +12,11 @@ describe('GithubHelper', () => {
     { name: '1st' }
   ];
   const tagListHasSingleTag = [{ name: '1st' }];
+  const pkg = {
+    repository: 'https://github.com/user-name/repository-name.git'
+  };
+  const github = new GithubHelper(pkg, config);
 
-  const github = new GithubHelper('nae-mom-daero-mandon-token', {
-    userName: 'username',
-    repoName: 'repoName'
-  });
   describe('getTagRange() ', () => {
     it('it should return latest two tags, when tag option is not set', () => {
       const result = github.getTagRange(tagListHasMultipleTag);
@@ -29,21 +31,33 @@ describe('GithubHelper', () => {
     });
 
     it('should return target tag and prior tag, when tag option is set', () => {
-      const result = github.getTagRange(tagListHasMultipleTag, '3rd');
+      config.tag = '3rd';
+
+      const result = github.getTagRange(tagListHasMultipleTag);
       expect(result.compare.name).toBe('3rd');
       expect(result.base.name).toBe('2nd');
+
+      delete config.tag;
     });
 
     it('should return prior tag, when tag option is set, and is first release', () => {
-      const result = github.getTagRange(tagListHasMultipleTag, '1st');
+      config.tag = '1st';
+
+      const result = github.getTagRange(tagListHasMultipleTag);
       expect(result.compare.name).toBe('1st');
       expect(result.base).toBeNull();
+
+      delete config.tag;
     });
 
     it('should not return tags, when cannot find tag option', () => {
+      config.tag = 'v0.0.0';
+
       expect(() => {
-        github.getTagRange(tagListHasMultipleTag, 'v0.0.0');
+        github.getTagRange(tagListHasMultipleTag);
       }).toThrow(new Error('Could not find v0.0.0 in GitHub tag list'));
+
+      delete config.tag;
     });
   });
 

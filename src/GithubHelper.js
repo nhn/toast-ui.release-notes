@@ -1,18 +1,42 @@
 'use strict';
 
+const Github = require('github-api');
+const { isValidRepositoryUrl, hasGithubToken, getRepositoryInfo } = require('./utils');
+
 class GithubHelper {
   /**
    * Set authentication repository config
    * @param {Object} repo - personal access token
    */
-  constructor(repo) {
-    this.repo = repo;
+  constructor(pkg, config) {
+    if (!isValidRepositoryUrl(pkg) || !hasGithubToken(config.token)) {
+      throw new Error();
+    }
+
+    this.repo = this.getRepo(pkg, config);
+    this.config = config;
+  }
+
+  /**
+   * Get Repository configured with access token, base url
+   * @param {object} pkg - json object defined in package.json
+   * @param {object} config - configuration
+   * @returns {Repository} - repository
+   * @see https://github.com/github-tools/github/blob/22b889cd48cd281812b020d85f8ea502af69ddfd/lib/Repository.js
+   * @private
+   */
+  getRepo(pkg, { token, apiUrl }) {
+    const repoInfo = getRepositoryInfo(pkg);
+    const gh = new Github({ token }, apiUrl);
+
+    return gh.getRepo(repoInfo.userName, repoInfo.repoName);
   }
 
   /**
    * make and return promise, using github api
    * @param {Function} api - api function
    * @returns {Promise} - response data, or error
+   * @private
    */
   request(api) {
     return api().then(response => {
@@ -28,6 +52,7 @@ class GithubHelper {
    * console log on error
    * @param {Exception} error - error while Promise
    * @param {string} [description] - additional description on error
+   * @private
    */
   consoleError(error, description) {
     if (error && error.message) {
@@ -44,6 +69,7 @@ class GithubHelper {
    * then set COMPARE and BASE tag by argments
    * BASE tag omits when COMPARE tag is initial tag
    * @returns {Promise} - compare tag and base tag
+   * @private
    */
   getTags() {
     return this.request(this.repo.listTags.bind(this.repo))
@@ -52,20 +78,14 @@ class GithubHelper {
   }
 
   /**
-   * tag range needed to collect commits
-   * @typedef {Object} Range - comparing ranges from `base` to `compare`
-   * @property {string} compare - tag to deploy
-   * @property {stirng} [base] - prior release tag
-   */
-  /**
    * Get tag names to compare
-   *
    * @param {Array} tags - tags, latest tag comes first
    * @param {string} argvTag - tag passed as a argument at bash
    * @returns {Range} - tags to compare
    */
-  getTagRange(tags, argvTag) {
-    const range = argvTag ? this.getTagsWithTagName(tags, argvTag) : this.getLatestTwoTags(tags);
+  getTagRange(tags) {
+    const { tag } = this.config;
+    const range = tag ? this.getTagsWithTagName(tags, tag) : this.getLatestTwoTags(tags);
 
     this.releasingTag = range.compare.name;
     console.log(`\n>>>> tag: ${this.releasingTag}`);
@@ -79,6 +99,7 @@ class GithubHelper {
    * @param {Array} tags - tags, latest tag comes first
    * @param {string} findingTag - tag name want to find, come from bash
    * @returns {Range} - tags to compare
+   * @private
    */
   getTagsWithTagName(tags, findingTag) {
     let compare = null;
@@ -105,6 +126,7 @@ class GithubHelper {
    * Get latest two tags
    * @param {Array} tags - tags in Github
    * @returns {Range} - tags to compare
+   * @private
    */
   getLatestTwoTags(tags) {
     const [compare] = tags;
@@ -136,6 +158,7 @@ class GithubHelper {
    * Get commit by tag name
    * @param {string} tag - tag name
    * @returns {Promise} - get commit on tagging
+   * @private
    */
   getCommitByTag(tag) {
     return this.request(this.repo.getSingleCommit.bind(this.repo, tag))
@@ -191,6 +214,7 @@ class GithubHelper {
   /**
    * Print http request and response data on console
    * @param {JSON} response - http response
+   * @private
    */
   pretty(response) {
     console.log('****************************************************************');

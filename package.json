@@ -1,18 +1,17 @@
 {
   "name": "tui-release-notes",
-  "version": "0.1.1",
+  "version": "1.0.1",
   "description": "TOAST UI Tools: ReleaseNotes",
   "scripts": {
     "test": "jasmine-node test/",
-    "eslint": "eslint ./src ./test",
-    "release": "src/tnote.js"
+    "eslint": "eslint ./src ./test"
   },
   "bin": {
-    "tuie": "src/tnote.js"
+    "tui-note": "./bin/tui-note.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/nhn/tui.release-notes"
+    "url": "https://github.com/nhn/tui.release-notes.git"
   },
   "keywords": [
     "nhn",

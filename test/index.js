@@ -1,4 +1,5 @@
 'use strict';
 
-require('./github-release.spec.js');
+require('./releaseNote.spec.js');
 require('./GithubHelper.spec.js');
+require('./utils.spec.js');
