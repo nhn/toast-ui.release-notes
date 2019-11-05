@@ -13,7 +13,7 @@ class GithubHelper {
       throw new Error();
     }
 
-    this.repo = this.getRepo(pkg, config);
+    this.repo = this._getRepo(pkg, config);
     this.config = config;
   }
 
@@ -25,7 +25,7 @@ class GithubHelper {
    * @see https://github.com/github-tools/github/blob/22b889cd48cd281812b020d85f8ea502af69ddfd/lib/Repository.js
    * @private
    */
-  getRepo(pkg, { token, apiUrl }) {
+  _getRepo(pkg, { token, apiUrl }) {
     const repoInfo = getRepositoryInfo(pkg);
     const gh = new Github({ token }, apiUrl);
 
@@ -38,10 +38,10 @@ class GithubHelper {
    * @returns {Promise} - response data, or error
    * @private
    */
-  request(api) {
+  _request(api) {
     return api().then(response => {
       if (response.status !== 200) {
-        throw new Error(this.pretty(response));
+        throw new Error(this._pretty(response));
       }
 
       return response;
@@ -54,7 +54,7 @@ class GithubHelper {
    * @param {string} [description] - additional description on error
    * @private
    */
-  consoleError(error, description) {
+  _consoleError(error, description) {
     if (error && error.message) {
       console.error(error.message);
     }
@@ -69,12 +69,11 @@ class GithubHelper {
    * then set COMPARE and BASE tag by argments
    * BASE tag omits when COMPARE tag is initial tag
    * @returns {Promise} - compare tag and base tag
-   * @private
    */
   getTags() {
-    return this.request(this.repo.listTags.bind(this.repo))
+    return this._request(this.repo.listTags.bind(this.repo))
       .then(response => response.data)
-      ['catch'](err => this.consoleError(err, 'Could not get tags from github'));
+      ['catch'](err => this._consoleError(err, 'Could not get tags from github'));
   }
 
   /**
@@ -85,7 +84,7 @@ class GithubHelper {
    */
   getTagRange(tags) {
     const { tag } = this.config;
-    const range = tag ? this.getTagsWithTagName(tags, tag) : this.getLatestTwoTags(tags);
+    const range = tag ? this._getTagsWithTagName(tags, tag) : this._getLatestTwoTags(tags);
 
     this.releasingTag = range.compare.name;
     console.log(`\n>>>> tag: ${this.releasingTag}`);
@@ -101,7 +100,7 @@ class GithubHelper {
    * @returns {Range} - tags to compare
    * @private
    */
-  getTagsWithTagName(tags, findingTag) {
+  _getTagsWithTagName(tags, findingTag) {
     let compare = null;
     let base = null;
 
@@ -128,9 +127,8 @@ class GithubHelper {
    * @returns {Range} - tags to compare
    * @private
    */
-  getLatestTwoTags(tags) {
-    const [compare] = tags;
-    const base = tags[1] || null;
+  _getLatestTwoTags(tags) {
+    const [compare, base = null] = tags;
 
     if (!compare) {
       throw new Error('Could not find latest tag. No tags in GitHub');
@@ -144,27 +142,26 @@ class GithubHelper {
 
   /**
    * Get commit logs between tags
-   * @param {string} since - tag name registered former
-   * @param {string} until - tag name registered latter
+   * @param {string} start - tag name registered former
+   * @param {string} end - tag name registered latter
    * @returns {Promise} - get commit logs between tags
    */
-  getCommitLogsBetweenTags(since, until) {
-    return this.request(this.repo.compareBranches.bind(this.repo, since, until))
+  getCommitLogsBetweenTags(start, end) {
+    return this._request(this.repo.compareBranches.bind(this.repo, start, end))
       .then(response => response.data.commits)
-      ['catch'](this.consoleError);
+      ['catch'](this._consoleError);
   }
 
   /**
    * Get commit by tag name
    * @param {string} tag - tag name
    * @returns {Promise} - get commit on tagging
-   * @private
    */
   getCommitByTag(tag) {
-    return this.request(this.repo.getSingleCommit.bind(this.repo, tag))
+    return this._request(this.repo.getSingleCommit.bind(this.repo, tag))
       .then(response => response.data)
       ['catch'](err =>
-        this.consoleError(
+        this._consoleError(
           err,
           `Could not get commit of ${tag}. Please check tag is registered on GitHub.`
         )
@@ -177,9 +174,9 @@ class GithubHelper {
    * @returns {Promise} - get commit by sha
    */
   getCommitBySHA(sha) {
-    return this.request(this.repo.getCommit.bind(this.repo, sha))
+    return this._request(this.repo.getCommit.bind(this.repo, sha))
       .then(response => response.data)
-      ['catch'](err => this.consoleError(err, `Could not get commit by ${sha.substr(0, 7)}`));
+      ['catch'](err => this._consoleError(err, `Could not get commit by ${sha.substr(0, 7)}`));
   }
 
   /**
@@ -188,9 +185,9 @@ class GithubHelper {
    * @returns {Promise} get commit logs
    */
   getCommits(options) {
-    return this.request(this.repo.listCommits.bind(this.repo, options))
+    return this._request(this.repo.listCommits.bind(this.repo, options))
       .then(response => response.data)
-      ['catch'](err => this.consoleError(err, 'Could not get commits'));
+      ['catch'](err => this._consoleError(err, 'Could not get commits'));
   }
 
   /**
@@ -204,11 +201,11 @@ class GithubHelper {
       body: releaseNote
     };
 
-    return this.request(this.repo.createRelease.bind(this.repo, options))
+    return this._request(this.repo.createRelease.bind(this.repo, options))
       .then(() => {
         console.log('Posted release notes to GitHub');
       })
-      ['catch'](err => this.consoleError(err, 'Could not post release notes to GitHub'));
+      ['catch'](err => this._consoleError(err, 'Could not post release notes to GitHub'));
   }
 
   /**
@@ -216,15 +213,16 @@ class GithubHelper {
    * @param {JSON} response - http response
    * @private
    */
-  pretty(response) {
-    console.log('****************************************************************');
-    console.log(`* method: ${response.config.method}`);
-    console.log(`* url: ${response.config.url}`);
-    console.log(`* status: ${response.status} ${response.statusText}`);
-    console.log('* ------------------------------------------------------------- *');
-    console.log('* data: ');
-    console.log(response.data);
-    console.log('****************************************************************');
+  _pretty(response) {
+    console.log(
+      `****************************************************************
+* method: ${response.config.method}
+* url: ${response.config.url}
+* status: ${response.status} ${response.statusText}
+* ------------------------------------------------------------- *
+* data: ${response.data}
+****************************************************************`
+    );
   }
 }
 

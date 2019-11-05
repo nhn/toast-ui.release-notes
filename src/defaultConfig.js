@@ -1,5 +1,9 @@
 'use strict';
 
+function getShortSHA(sha) {
+  return sha.substr(0, 7);
+}
+
 module.exports = {
   apiUrl: 'https://api.github.com',
   groupBy: {
@@ -31,7 +35,7 @@ module.exports = {
       const [msg] = message.split('\n');
       const capitalizedMsg = `${msg[0].toUpperCase()}${msg.substr(1).toLowerCase()}`;
 
-      return `* ${sha.substr(0, 7)} ${capitalizedMsg.split('\n')[0]}`;
+      return `* ${getShortSHA(sha)} ${capitalizedMsg.split('\n')[0]}`;
     }
   }
   /**

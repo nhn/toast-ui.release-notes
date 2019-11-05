@@ -14,18 +14,21 @@ const githubHelper = new GithubHelper(pkg, config);
  * @private
  */
 function getConfig() {
-  /* eslint-disable global-require */
+  // eslint-disable-next-line global-require
   const defaultConfig = require('./defaultConfig');
   let customConfig;
   try {
+    // eslint-disable-next-line global-require
     customConfig = require(path.resolve(process.cwd(), 'tui-note.config.js'));
   } catch (e) {
     customConfig = {};
   }
   const combinedConfig = Object.assign(defaultConfig, customConfig);
   combinedConfig.tag = argv.tag || combinedConfig.tag;
-  combinedConfig.token = process.env.TUI_GITHUB_TOKEN || combinedConfig.token; // eslint-disable-line no-process-env
-  combinedConfig.apiUrl = process.env.apiUrl || combinedConfig.apiUrl; // eslint-disable-line no-process-env
+  // eslint-disable-next-line no-process-env
+  combinedConfig.token = process.env.TUI_GITHUB_TOKEN || combinedConfig.token;
+  // eslint-disable-next-line no-process-env
+  combinedConfig.apiUrl = process.env.apiUrl || combinedConfig.apiUrl;
 
   return combinedConfig;
 }
@@ -42,9 +45,9 @@ function release() {
   githubHelper
     .getTags()
     .then(tags => githubHelper.getTagRange(tags))
-    .then(getCommitLogs)
-    .then(filterCommits)
-    .then(makeReleaseNote)
+    .then(_getCommitLogs)
+    .then(_getCommitsWithExistingGroup)
+    .then(_makeReleaseNote)
     .then(releaseNote => githubHelper.publishReleaseNote(releaseNote))
     ['catch'](error => console.error(error.message));
 }
@@ -54,20 +57,22 @@ function release() {
  * if not, get commits until COMPARE tag
  * @param {Object} tagRange - target tags to compare
  * @returns {Promise} - get commits from target tag
+ * @private
  */
-function getCommitLogs(tagRange) {
+function _getCommitLogs(tagRange) {
   if (tagRange.base) {
     return githubHelper.getCommitLogsBetweenTags(tagRange.base.name, tagRange.compare.name);
   }
 
-  return getCommitLogsUntilTag(tagRange.compare.name);
+  return _loadCommitLogsUntilTag(tagRange.compare.name);
 }
 
 /**
  * Get commits until tag
  * @param {string} tag - tag name
+ * @private
  */
-function getCommitLogsUntilTag(tag) {
+function _loadCommitLogsUntilTag(tag) {
   /*
    * need register date of tagging commit
    * to get date,
@@ -86,15 +91,18 @@ function getCommitLogsUntilTag(tag) {
  * Filter commits by their types.
  * @param {Array} commits - commits
  * @returns {Array} - filtered commits
+ * @private
  */
-function filterCommits(commits = []) {
+function _getCommitsWithExistingGroup(commits = []) {
   const filteredCommits = [];
 
   commits.forEach(commitObj => {
+    const { sha } = commitObj;
     const { message, author } = commitObj.commit;
-    const group = getGroupByCommitType(message);
+    const group = _getGroupByCommitType(message);
+
     if (group) {
-      filteredCommits.push({ group, sha: commitObj.sha, message, author });
+      filteredCommits.push({ group, sha, message, author });
       console.log('\x1b[32m%s\x1b[0m', `shipped: ${message}`);
     } else {
       console.log('\x1b[31m%s\x1b[0m', `omitted: ${message}`);
@@ -108,8 +116,9 @@ function filterCommits(commits = []) {
  * Specify a commit by type
  * @param {string} message - commit message
  * @returns {string} group
+ * @private
  */
-function getGroupByCommitType(message) {
+function _getGroupByCommitType(message) {
   const type = config.commitMessage.type(message);
   const { groupBy } = config;
 
@@ -128,15 +137,17 @@ function getGroupByCommitType(message) {
  * Make release note from commit objects
  * @param {Array} commits - commits
  * @returns {string} - generated release note
+ * @private
  */
-function makeReleaseNote(commits) {
+function _makeReleaseNote(commits) {
   let releaseNote = '';
+  const { groupBy } = config;
 
-  for (const group in config.groupBy) {
-    if (config.groupBy.hasOwnProperty(group)) {
+  for (const group in groupBy) {
+    if (groupBy.hasOwnProperty(group)) {
       const commitsInGroup = commits.filter(commit => commit.group === group);
       if (commitsInGroup.length > 0) {
-        releaseNote += makeGroupReleaseNote(group, renderCommits(commitsInGroup));
+        releaseNote += _makeGroupReleaseNote(group, _renderCommits(commitsInGroup));
       }
     }
   }
@@ -144,7 +155,7 @@ function makeReleaseNote(commits) {
   if (config.downloads) {
     const { downloads } = config;
     const links = downloads instanceof Function ? downloads(pkg, config) : downloads;
-    releaseNote += makeGroupReleaseNote('Downloads', renderDownloads(links));
+    releaseNote += _makeGroupReleaseNote('Downloads', _renderDownloads(links));
   }
 
   console.log('\n================================================================');
@@ -159,8 +170,9 @@ function makeReleaseNote(commits) {
  * @param {string} heading - section's title
  * @param {string} note - section's contents
  * @returns {string} - generated release note for one group
+ * @private
  */
-function makeGroupReleaseNote(heading, note) {
+function _makeGroupReleaseNote(heading, note) {
   return `\n## ${heading}\n\n${note}`;
 }
 
@@ -168,8 +180,9 @@ function makeGroupReleaseNote(heading, note) {
  * Render commit sections
  * @param {array<object>} commits - commits which have the same type
  * @returns {string} - release note's contents
+ * @private
  */
-function renderCommits(commits) {
+function _renderCommits(commits) {
   let releaseNote = '';
   commits.forEach(commit => {
     releaseNote += `${config.template.commit(commit)}\n`;
@@ -182,8 +195,9 @@ function renderCommits(commits) {
  * Render download section
  * @param {object} links - key: text to show / value: url to download
  * @returns {string} - release note's contents
+ * @private
  */
-function renderDownloads(links) {
+function _renderDownloads(links) {
   let releaseNote = '';
   for (const title in links) {
     if (links.hasOwnProperty(title)) {
@@ -196,11 +210,9 @@ function renderDownloads(links) {
 
 module.exports = {
   release,
-
-  /* test */
-  filterCommits,
-  getGroupByCommitType,
-  makeReleaseNote,
-  renderCommits,
-  renderDownloads
+  _getCommitsWithExistingGroup,
+  _getGroupByCommitType,
+  _makeReleaseNote,
+  _renderCommits,
+  _renderDownloads
 };

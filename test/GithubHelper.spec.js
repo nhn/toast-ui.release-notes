@@ -61,45 +61,45 @@ describe('GithubHelper', () => {
     });
   });
 
-  describe('getTagsWithTagName()', () => {
+  describe('_getTagsWithTagName()', () => {
     it('should find tag by tag name, on single tag', () => {
-      const tagRange = github.getTagsWithTagName(tagListHasSingleTag, '1st');
+      const tagRange = github._getTagsWithTagName(tagListHasSingleTag, '1st');
       expect(tagRange.compare.name).toBe('1st');
       expect(tagRange.base).toBeNull();
     });
 
     it('should find tag by tag name', () => {
-      const tagRange1 = github.getTagsWithTagName(tagListHasMultipleTag, '1st');
+      const tagRange1 = github._getTagsWithTagName(tagListHasMultipleTag, '1st');
       expect(tagRange1.compare.name).toBe('1st');
       expect(tagRange1.base).toBeNull();
 
-      const tagRange2 = github.getTagsWithTagName(tagListHasMultipleTag, '2nd');
+      const tagRange2 = github._getTagsWithTagName(tagListHasMultipleTag, '2nd');
       expect(tagRange2.compare.name).toBe('2nd');
       expect(tagRange2.base.name).toBe('1st');
     });
 
     it('should throw error on invalid inputs', () => {
       expect(() => {
-        github.getTagsWithTagName([], '1.0.0');
+        github._getTagsWithTagName([], '1.0.0');
       }).toThrow();
       expect(() => {
-        github.getTagsWithTagName([], '');
+        github._getTagsWithTagName([], '');
       }).toThrow();
       expect(() => {
-        github.getTagsWithTagName('', '1.0.0');
+        github._getTagsWithTagName('', '1.0.0');
       }).toThrow();
     });
   });
 
-  describe('getLatestTwoTags()', () => {
+  describe('_getLatestTwoTags()', () => {
     it('should get lastest tag on single tag', () => {
-      const tagRange = github.getLatestTwoTags(tagListHasSingleTag);
+      const tagRange = github._getLatestTwoTags(tagListHasSingleTag);
       expect(tagRange.compare.name).toBe('1st');
       expect(tagRange.base).toBeNull();
     });
 
     it('should get latest tag on multiple tag', () => {
-      const tagRange = github.getLatestTwoTags(tagListHasMultipleTag);
+      const tagRange = github._getLatestTwoTags(tagListHasMultipleTag);
       expect(tagRange.compare.name).toBe('4th');
       expect(tagRange.base.name).toBe('3rd');
     });
