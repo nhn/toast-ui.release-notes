@@ -1,205 +1,229 @@
 'use strict';
 
+const Github = require('github-api');
+const { isValidRepositoryUrl, hasGithubToken, getRepositoryInfo } = require('./utils');
+
 class GithubHelper {
-    /**
-     * Set authentication repository config
-     * @param {Object} repo - personal access token
-     */
-    constructor(repo) {
-        this.repo = repo;
+  /**
+   * Set authentication repository config
+   * @param {Object} repo - personal access token
+   */
+  constructor(pkg, config) {
+    if (!isValidRepositoryUrl(pkg) || !hasGithubToken(config.token)) {
+      throw new Error();
     }
 
-    /**
-     * make and return promise, using github api
-     * @param {Function} api - api function
-     * @returns {Promise} - response data, or error
-     */
-    request(api) {
-        return api()
-            .then(response => {
-                if (response.status !== 200) {
-                    throw new Error(this.pretty(response));
-                }
+    this.repo = this._getRepo(pkg, config);
+    this.config = config;
+  }
 
-                return response;
-            });
+  /**
+   * Get Repository configured with access token, base url
+   * @param {object} pkg - json object defined in package.json
+   * @param {object} config - configuration
+   * @returns {Repository} - repository
+   * @see https://github.com/github-tools/github/blob/22b889cd48cd281812b020d85f8ea502af69ddfd/lib/Repository.js
+   * @private
+   */
+  _getRepo(pkg, { token, apiUrl }) {
+    const repoInfo = getRepositoryInfo(pkg);
+    const gh = new Github({ token }, apiUrl);
+
+    return gh.getRepo(repoInfo.userName, repoInfo.repoName);
+  }
+
+  /**
+   * make and return promise, using github api
+   * @param {Function} api - api function
+   * @returns {Promise} - response data, or error
+   * @private
+   */
+  _request(api) {
+    return api().then(response => {
+      if (response.status !== 200) {
+        throw new Error(this._pretty(response));
+      }
+
+      return response;
+    });
+  }
+
+  /**
+   * console log on error
+   * @param {Exception} error - error while Promise
+   * @param {string} [description] - additional description on error
+   * @private
+   */
+  _consoleError(error, description) {
+    if (error && error.message) {
+      console.error(error.message);
     }
 
-    /**
-     * console log on error
-     * @param {Exception} error - error while Promise
-     * @param {string} [description] - additional description on error
-     */
-    consoleError(error, description) {
-        if (error && error.message) {
-            console.error(error.message);
-        }
+    if (description) {
+      console.error(description);
+    }
+  }
 
-        if (description) {
-            console.error(description);
-        }
+  /**
+   * Get all tags in github
+   * then set COMPARE and BASE tag by argments
+   * BASE tag omits when COMPARE tag is initial tag
+   * @returns {Promise} - compare tag and base tag
+   */
+  getTags() {
+    return this._request(this.repo.listTags.bind(this.repo))
+      .then(response => response.data)
+      ['catch'](err => this._consoleError(err, 'Could not get tags from github'));
+  }
+
+  /**
+   * Get tag names to compare
+   * @param {Array} tags - tags, latest tag comes first
+   * @param {string} argvTag - tag passed as a argument at bash
+   * @returns {Range} - tags to compare
+   */
+  getTagRange(tags) {
+    const { tag } = this.config;
+    const range = tag ? this._getTagsWithTagName(tags, tag) : this._getLatestTwoTags(tags);
+
+    this.releasingTag = range.compare.name;
+    console.log(`\n>>>> tag: ${this.releasingTag}`);
+
+    return range;
+  }
+
+  /**
+   * User set target tag by `--tag={tag}` option at bash
+   * Find target tag from tag list,
+   * @param {Array} tags - tags, latest tag comes first
+   * @param {string} findingTag - tag name want to find, come from bash
+   * @returns {Range} - tags to compare
+   * @private
+   */
+  _getTagsWithTagName(tags, findingTag) {
+    let compare = null;
+    let base = null;
+
+    const { length } = tags;
+    const index = tags.findIndex(tag => tag.name === findingTag);
+    compare = tags[index];
+    if (index < length - 1) {
+      base = tags[index + 1];
     }
 
-    /**
-     * Get all tags in github
-     * then set COMPARE and BASE tag by argments
-     * BASE tag omits when COMPARE tag is initial tag
-     * @returns {Promise} - compare tag and base tag
-     */
-    getTags() {
-        return this.request(this.repo.listTags.bind(this.repo))
-            .then(response => response.data)
-            .catch(err => this.consoleError(err, 'Could not get tags from github'));
+    if (!compare) {
+      throw new Error(`Could not find ${findingTag} in GitHub tag list`);
     }
 
-    /**
-     * tag range needed to collect commits
-     * @typedef {Object} Range - comparing ranges from `base` to `compare`
-     * @property {string} compare - tag to deploy
-     * @property {stirng} [base] - prior release tag
-     */
-    /**
-     * Get tag names to compare
-     * 
-     * @param {Array} tags - tags, latest tag comes first
-     * @param {string} argvTag - tag passed as a argument at bash
-     * @returns {Range} - tags to compare
-     */
-    getTagRange(tags, argvTag) {
-        const range = argvTag ? this.getTagsWithTagName(tags, argvTag) : this.getLatestTwoTags(tags);
+    return {
+      compare,
+      base
+    };
+  }
 
-        this.releasingTag = range.compare.name;
-        console.log(`\n>>>> tag: ${this.releasingTag}`);
+  /**
+   * Get latest two tags
+   * @param {Array} tags - tags in Github
+   * @returns {Range} - tags to compare
+   * @private
+   */
+  _getLatestTwoTags(tags) {
+    const [compare, base = null] = tags;
 
-        return range;
+    if (!compare) {
+      throw new Error('Could not find latest tag. No tags in GitHub');
     }
 
-    /**
-     * User set target tag by `--tag={tag}` option at bash
-     * Find target tag from tag list, 
-     * @param {Array} tags - tags, latest tag comes first
-     * @param {string} findingTag - tag name want to find, come from bash
-     * @returns {Range} - tags to compare
-     */
-    getTagsWithTagName(tags, findingTag) {
-        let compare = null;
-        let base = null;
+    return {
+      compare,
+      base
+    };
+  }
 
-        const {length} = tags;
-        const index = tags.findIndex(tag => tag.name === findingTag);
-        compare = tags[index];
-        if (index < length - 1) {
-            base = tags[index + 1];
-        }
+  /**
+   * Get commit logs between tags
+   * @param {string} start - tag name registered former
+   * @param {string} end - tag name registered latter
+   * @returns {Promise} - get commit logs between tags
+   */
+  getCommitLogsBetweenTags(start, end) {
+    return this._request(this.repo.compareBranches.bind(this.repo, start, end))
+      .then(response => response.data.commits)
+      ['catch'](this._consoleError);
+  }
 
-        if (!compare) {
-            throw new Error(`Could not find ${findingTag} in GitHub tag list`);
-        }
+  /**
+   * Get commit by tag name
+   * @param {string} tag - tag name
+   * @returns {Promise} - get commit on tagging
+   */
+  getCommitByTag(tag) {
+    return this._request(this.repo.getSingleCommit.bind(this.repo, tag))
+      .then(response => response.data)
+      ['catch'](err =>
+        this._consoleError(
+          err,
+          `Could not get commit of ${tag}. Please check tag is registered on GitHub.`
+        )
+      );
+  }
 
-        return {
-            compare,
-            base
-        };
-    }
+  /**
+   * Get commit by sha
+   * @param {string} sha - sha code
+   * @returns {Promise} - get commit by sha
+   */
+  getCommitBySHA(sha) {
+    return this._request(this.repo.getCommit.bind(this.repo, sha))
+      .then(response => response.data)
+      ['catch'](err => this._consoleError(err, `Could not get commit by ${sha.substr(0, 7)}`));
+  }
 
-    /**
-     * Get latest two tags
-     * @param {Array} tags - tags in Github
-     * @returns {Range} - tags to compare
-     */
-    getLatestTwoTags(tags) {
-        const [compare] = tags;
-        const base = tags[1] || null;
+  /**
+   * Get commit list
+   * @param {Object} options - list commit options
+   * @returns {Promise} get commit logs
+   */
+  getCommits(options) {
+    return this._request(this.repo.listCommits.bind(this.repo, options))
+      .then(response => response.data)
+      ['catch'](err => this._consoleError(err, 'Could not get commits'));
+  }
 
-        if (!compare) {
-            throw new Error('Could not find latest tag. No tags in GitHub');
-        }
+  /**
+   * Post release note
+   * @param {string} releaseNote - generated release note
+   */
+  publishReleaseNote(releaseNote) {
+    const options = {
+      tagName: this.releasingTag,
+      name: this.releasingTag,
+      body: releaseNote
+    };
 
-        return {
-            compare,
-            base
-        };
-    }
+    return this._request(this.repo.createRelease.bind(this.repo, options))
+      .then(() => {
+        console.log('Posted release notes to GitHub');
+      })
+      ['catch'](err => this._consoleError(err, 'Could not post release notes to GitHub'));
+  }
 
-    /**
-     * Get commit logs between tags
-     * @param {string} since - tag name registered former
-     * @param {string} until - tag name registered latter
-     * @returns {Promise} - get commit logs between tags
-     */
-    getCommitLogsBetweenTags(since, until) {
-        return this.request(this.repo.compareBranches.bind(this.repo, since, until))
-            .then(response => response.data.commits)
-            .catch(this.consoleError);
-    }
-
-    /**
-     * Get commit by tag name
-     * @param {string} tag - tag name 
-     * @returns {Promise} - get commit on tagging
-     */
-    getCommitByTag(tag) {
-        return this.request(this.repo.getSingleCommit.bind(this.repo, tag))
-            .then(response => response.data)
-            .catch(err => this.consoleError(
-                err, `Could not get commit of ${tag}. Please check tag is registered on GitHub.`
-            ));
-    }
-
-    /**
-     * Get commit by sha
-     * @param {string} sha - sha code
-     * @returns {Promise} - get commit by sha
-     */
-    getCommitBySHA(sha) {
-        return this.request(this.repo.getCommit.bind(this.repo, sha))
-            .then(response => response.data)
-            .catch(err => this.consoleError(err, `Could not get commit by ${sha.substr(0, 7)}`));
-    }
-
-    /**
-     * Get commit list
-     * @param {Object} options - list commit options
-     * @returns {Promise} get commit logs
-     */
-    getCommits(options) {
-        return this.request(this.repo.listCommits.bind(this.repo, options))
-            .then(response => response.data)
-            .catch(err => this.consoleError(err, 'Could not get commits'));
-    }
-
-    /**
-     * Post release note
-     * @param {string} releaseNote - generated release note
-     */
-    publishReleaseNote(releaseNote) {
-        const options = {
-            'tag_name': this.releasingTag,
-            name: this.releasingTag,
-            body: releaseNote
-        };
-
-        return this.request(this.repo.createRelease.bind(this.repo, options))
-            .then(() => {
-                console.log('Posted release notes to GitHub')
-            })
-            .catch(err => this.consoleError(err, 'Could not post release notes to GitHub'));
-    }
-
-    /**
-     * Print http request and response data on console
-     * @param {JSON} response - http response
-     */
-    pretty(response) {
-        console.log('****************************************************************');
-        console.log(`* method: ${response.config.method}`);
-        console.log(`* url: ${response.config.url}`);
-        console.log(`* status: ${response.status} ${response.statusText}`);
-        console.log('* ------------------------------------------------------------- *');
-        console.log('* data: ');
-        console.log(response.data);
-        console.log('****************************************************************');
-    }
+  /**
+   * Print http request and response data on console
+   * @param {JSON} response - http response
+   * @private
+   */
+  _pretty(response) {
+    console.log(
+      `****************************************************************
+* method: ${response.config.method}
+* url: ${response.config.url}
+* status: ${response.status} ${response.statusText}
+* ------------------------------------------------------------- *
+* data: ${response.data}
+****************************************************************`
+    );
+  }
 }
 
 module.exports = GithubHelper;
