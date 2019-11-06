@@ -1,6 +1,12 @@
 # TOAST UI Tools: Release Notes
 > Github release notes generator.
 
+[![GitHub release](https://img.shields.io/github/release/nhn/toast-ui.release-notes.svg)](https://github.com/nhn/toast-ui.release-notes/releases/latest)
+[![npm](https://img.shields.io/npm/v/@toast-ui/release-notes.svg)](https://www.npmjs.com/package/@toast-ui/release-notes)
+[![GitHub license](https://img.shields.io/github/license/nhn/toast-ui.release-notes.svg)](https://github.com/nhn/toast-ui.release-notes/blob/production/LICENSE)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-ff69b4.svg)](https://github.com/nhn/toast-ui.release-notes/labels/help%20wanted)
+[![code with hearth by NHN](https://img.shields.io/badge/%3C%2F%3E%20with%20%E2%99%A5%20by-NHN-ff1414.svg)](https://github.com/nhn)
+
 ![image](https://user-images.githubusercontent.com/8615506/68182173-845baf80-ffdc-11e9-8c5d-52a3f4d26138.png)
 
 ## 🚩 Table of Contents
@@ -21,12 +27,24 @@
 
 ## 💾 Install
 
-```javascript
-// package.json
-devDependencies: {
-  "tui-release-notes": "git+https://github.com/nhn/tui.release-notes.git"
-}
+TOAST UI products can be used by using the package manager or downloading the source directly. However, we highly recommend using the package manager.
+
+### Via Package Manager
+
+TOAST UI products are registered in two package managers, [npm](https://www.npmjs.com/).
+You can conveniently install it using the commands provided by each package manager.
+When using npm, be sure to use it in the environment [Node.js](https://nodejs.org/) is installed.
+
+#### npm
+
+``` sh
+$ npm install --save-dev @toast-ui/release-notes # Latest version
+$ npm install --save-dev @toast-ui/release-notes@<version> # Specific version
 ```
+
+### Download Source Files
+* [Download all sources for each version](https://github.com/nhn/toast-ui.release-notes/releases)
+
 
 ## 🔨 Usage
 
@@ -42,12 +60,12 @@ devDependencies: {
 "repository": "https://github.com/username/repository-name.git"
 ```
 
-2. Register `TUI_GITHUB_TOKEN` as an environment variable or `token` property in `tui-note.config.js`.
+2. Register Github access token by `TUI_GITHUB_TOKEN` as an environment variable or `token` property in `tui-note.config.js`. To generate a token, please refer to [this](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line).
 
 ```javascript
 // tui-note.config.js
 module.exports = {
-  token: 'your-github-token-for-tui-release-notes'
+  token: 'your-github-token-for-toast-ui-release-notes'
 }
 ```
 
@@ -62,12 +80,13 @@ scripts: {
 4. Execute the command on your `project root`.
 
 ```bash
-# latest tag
+# tag specified in the tui-note.config.file
+# if you do not set a tag in a config file, latest tag
 npm run note
+
 # specific tag
+# it will overwrite a tag in a config file
 npm run note -- --tag={specific-tag}
-# enterprise
-npm run note -- --apiUrl={github.your-enterprise-url.com/api/v3}
 ```
 
 ### Add a config file
@@ -76,13 +95,13 @@ Add your config files to the root of your working directory. The config file mus
 
 | Option | Type | Description |
 | --- | --- | --- |
-| `token` | `string` | Github access token for tui-release-note. If you pass a token as an environment variable, it will be overwritten. |
+| `token` | `string` | Github access token for toast-ui.release-notes. If you pass a token as an environment variable, it will be overwritten. |
 | `tag` | `string` | Tag to create a release note. If you pass a tag as the command line argument, it will be overwritten. (default: the latest tag) |
-| `apiUrl` | `string` | Github API url. If you use the enterprise github, set your enterprise github url. (default: https://api.github.com) |
-| `groupBy` | `object` | Determine how to categorize commits by their types. 'key' is `group name` and 'value' is `array of types`. (default: [defaultConfig.groupBy](https://github.com/nhn/tui.release-notes/blob/master/src/defaultConfig.js#L9)) |
-| `commitMessage.type` | `function` | Determine how to get a type from a commit message. (default: [defaultConfig.commitMessage.type](https://github.com/nhn/tui.release-notes/blob/master/src/defaultConfig.js#L21)) |
-| `template.commit` | `function` | Note from a commit. (default: [defaultConfig.template.commit](https://github.com/nhn/tui.release-notes/blob/master/src/defaultConfig.js#L33)) |
-| `downloads` | `function \| object` | Links to download the files. (reference: [defaultConfig.downloads](https://github.com/nhn/tui.release-notes/blob/master/src/defaultConfig.js#L47)) |
+| `apiUrl` | `string` | Github API url. If you use the enterprise github, set your enterprise github url (ex. github.your-enterprise-url.com/api/v3). (default: https://api.github.com) |
+| `groupBy` | `object` | Determine how to categorize commits by their types. 'key' is `group name` and 'value' is `array of types`. (default: [defaultConfig.groupBy](https://github.com/nhn/toast-ui.release-notes/blob/master/src/defaultConfig.js#L9)) |
+| `commitMessage.type` | `function` | Determine how to get a type from a commit message. (default: [defaultConfig.commitMessage.type](https://github.com/nhn/toast-ui.release-notes/blob/master/src/defaultConfig.js#L21)) |
+| `template.commit` | `function` | Note from a commit. (default: [defaultConfig.template.commit](https://github.com/nhn/toast-ui.release-notes/blob/master/src/defaultConfig.js#L33)) |
+| `downloads` | `function \| object` | Links to download the files. (reference: [defaultConfig.downloads](https://github.com/nhn/toast-ui.release-notes/blob/master/src/defaultConfig.js#L47)) |
 
 
 ## 🔧 Pull Request Steps
@@ -97,8 +116,8 @@ Clone it to local computer. Install node modules.
 Before starting development, you should check to haveany errors.
 
 ``` sh
-$ git clone https://github.com/{your-personal-repo}/tui.release-notes.git
-$ cd tui.release-notes
+$ git clone https://github.com/{your-personal-repo}/toast-ui.release-notes.git
+$ cd toast-ui.release-notes
 $ npm install
 $ npm run test
 ```
@@ -123,10 +142,10 @@ For more information on PR's step, please see links of Contributing section.
 
 
 ## 💬 Contributing
-* [Code of Conduct](https://github.com/nhn/tui.release-notes/blob/master/CODE_OF_CONDUCT.md)
-* [Contributing guideline](https://github.com/nhn/tui.release-notes/blob/master/CONTRIBUTING.md)
-* [Issue guideline](https://github.com/nhn/tui.release-notes/blob/master/docs/ISSUE_TEMPLATE.md)
-* [Commit convention](https://github.com/nhn/tui.release-notes/blob/master/docs/COMMIT_MESSAGE_CONVENTION.md)
+* [Code of Conduct](https://github.com/nhn/toast-ui.release-notes/blob/master/CODE_OF_CONDUCT.md)
+* [Contributing guideline](https://github.com/nhn/toast-ui.release-notes/blob/master/CONTRIBUTING.md)
+* [Issue guideline](https://github.com/nhn/toast-ui.release-notes/blob/master/docs/ISSUE_TEMPLATE.md)
+* [Commit convention](https://github.com/nhn/toast-ui.release-notes/blob/master/docs/COMMIT_MESSAGE_CONVENTION.md)
 
 
 ## 🍞 TOAST UI Family
@@ -140,4 +159,4 @@ For more information on PR's step, please see links of Contributing section.
 
 
 ## 📜 License
-This software is licensed under the [MIT License](https://github.com/nhn/tui.release-notes/blob/master/LICENSE) © [NHN](https://github.com/nhn).
+This software is licensed under the [MIT License](https://github.com/nhn/toast-ui.release-notes/blob/master/LICENSE) © [NHN](https://github.com/nhn).
