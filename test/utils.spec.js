@@ -21,32 +21,32 @@ describe('utils.isValidRepositoryUrl()', () => {
       })
     ).toBe(true);
 
-    expect(
-      isValidRepositoryUrl({
+    expect(() => {
+      return isValidRepositoryUrl({
         repository: 'https://github.com/user-name/repository-name'
-      })
-    ).toBe(false);
+      });
+    }).toThrow(new Error('Invalid repository url on package.json'));
 
-    expect(
-      isValidRepositoryUrl({
+    expect(() => {
+      return isValidRepositoryUrl({
         repository: ''
-      })
-    ).toBe(false);
+      });
+    }).toThrow(new Error('Invalid repository url on package.json'));
 
-    expect(
-      isValidRepositoryUrl({
+    expect(() => {
+      return isValidRepositoryUrl({
         repository: {
           url: 'https://github.com/user-name/repository-name'
         }
-      })
-    ).toBe(false);
+      });
+    }).toThrow(new Error('Invalid repository url on package.json'));
   });
 });
 
 describe('utils.hasGithubToken()', () => {
   it('should determine a token is valid or not.', () => {
     expect(hasGithubToken('test_token')).toBe(true);
-    expect(hasGithubToken(123123)).toBe(false);
+    expect(() => hasGithubToken(123123)).toThrow(new Error('Missing Github access token'));
   });
 });
 

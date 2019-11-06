@@ -9,9 +9,8 @@ class GithubHelper {
    * @param {Object} repo - personal access token
    */
   constructor(pkg, config) {
-    if (!isValidRepositoryUrl(pkg) || !hasGithubToken(config.token)) {
-      throw new Error();
-    }
+    isValidRepositoryUrl(pkg);
+    hasGithubToken(config.token);
 
     this.repo = this._getRepo(pkg, config);
     this.config = config;

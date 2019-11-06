@@ -17,8 +17,7 @@ function getRepositoryUrl(pkg) {
   }
 
   if (!GIT_REPO_REGEXP.test(repositoryUrl)) {
-    console.error('Invalid repository url on package.json');
-    repositoryUrl = '';
+    throw new Error('Invalid repository url on package.json');
   }
 
   return repositoryUrl;
@@ -41,7 +40,7 @@ function isValidRepositoryUrl(pkg) {
 function hasGithubToken(token) {
   const isValidToken = typeof token === 'string' && token.length > 0;
   if (!isValidToken) {
-    console.error('Missing TUI_GITHUB_TOKEN environment variable');
+    throw new Error('Missing Github access token');
   }
 
   return isValidToken;
