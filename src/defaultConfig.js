@@ -18,7 +18,7 @@ module.exports = {
      * @param {string} commitMessage a message of commit
      * @return {string} type
      */
-    type: commitMessage => commitMessage.split(':')[0]
+    type: commitMessage => commitMessage.split(':')[0].toLowerCase()
   },
   template: {
     /**
