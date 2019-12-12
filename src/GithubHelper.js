@@ -3,6 +3,8 @@
 const Github = require('github-api');
 const { isValidRepositoryUrl, hasGithubToken, getRepositoryInfo } = require('./utils');
 
+const SUCCESS_STATUS = [200, 201];
+
 class GithubHelper {
   /**
    * Set authentication repository config
@@ -39,7 +41,7 @@ class GithubHelper {
    */
   _request(api) {
     return api().then(response => {
-      if (response.status !== 200) {
+      if (SUCCESS_STATUS.indexOf(response.status) < 0) {
         throw new Error(this._pretty(response));
       }
 
@@ -195,7 +197,7 @@ class GithubHelper {
    */
   publishReleaseNote(releaseNote) {
     const options = {
-      tagName: this.releasingTag,
+      tag_name: this.releasingTag, // eslint-disable-line camelcase
       name: this.releasingTag,
       body: releaseNote
     };

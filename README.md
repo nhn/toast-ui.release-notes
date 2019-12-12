@@ -113,7 +113,7 @@ Run npm scripts and develop yourself with the following process.
 
 Fork `master` branch into your personal repository.
 Clone it to local computer. Install node modules.
-Before starting development, you should check to haveany errors.
+Before starting development, you should check to have any errors.
 
 ``` sh
 $ git clone https://github.com/{your-personal-repo}/toast-ui.release-notes.git
