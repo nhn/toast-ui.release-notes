@@ -39,7 +39,7 @@ class GithubHelper {
    */
   _request(api) {
     return api().then(response => {
-      if (response.status !== 200) {
+      if (response.status !== 200 || response.status !== 201) {
         throw new Error(this._pretty(response));
       }
 
@@ -195,7 +195,7 @@ class GithubHelper {
    */
   publishReleaseNote(releaseNote) {
     const options = {
-      tagName: this.releasingTag,
+      tag_name: this.releasingTag, // eslint-disable-line camelcase
       name: this.releasingTag,
       body: releaseNote
     };
